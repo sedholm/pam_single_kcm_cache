@@ -1,0 +1,36 @@
+Source: libpam-single-kcm-cache
+Section: admin
+Priority: optional
+Maintainer: Per Sedholm <sedholm@kth.se>
+XSBC-Original-Maintainer: Per Sedholm <sedholm@kth.se>
+Build-Depends: debhelper-compat (= 13),
+               autoconf,
+               automake,
+               libtool,
+               libkrb5-dev,
+               libpam0g-dev,
+               pkg-config
+Standards-Version: 4.5.0
+Homepage: https://github.com/habazut/pam_single_kcm_cache
+Vcs-Browser: https://github.com/habazut/pam_single_kcm_cache
+Vcs-Git: https://github.com/habazut/pam_single_kcm_cache.git
+Rules-Requires-Root: no
+
+Package: libpam-single-kcm-cache
+Architecture: any
+Multi-Arch: same
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Recommends:
+  libpam-krb5 | libpam-heimdal,
+  krb5-user | heimdal-clients
+Description: PAM module for KCM cache management of user sessions
+ This PAM module sets up a credential cache in the Kerberos
+ Credentials Manager (KCM), and locks the user session to this cache
+ by setting the KRB5CCNAME environment variable. The cache is
+ populated with delegated or newly created TGT (ticket granting
+ ticket), provided by other Kerberos PAM modules, e.g. pam_krb5.
+ .
+ The module helps in situations where KCM's heuristic for selecting
+ which of many caches should be the default. Additionally it can be
+ used to control isolation between, or integrations between between
+ caches for different sessions, e.g. multiple SSH login sessions.

@@ -1,0 +1,6 @@
+libpam-single-kcm-cache (0.1.0-0~kth1~noble) noble; urgency=medium
+
+  * Initial release for manual Ubuntu noble debuild
+  * Built from upstream repository
+
+ -- Per Sedholm <sedholm@kth.se>  Thu, 03 Jul 2025 12:05:58 +0200
