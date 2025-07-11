@@ -17,50 +17,49 @@ MAINTAINER_NAME="Per Sedholm"
 MAINTAINER_EMAIL="sedholm@kth.se"
 
 
-#for RELEASE in "${UBUNTU_RELEASES[@]}"; do
-RELEASE=jammy
-VERSION=$(PACKAGE_NAME=$PACKAGE_NAME perl -MEnv -nle 'next unless m{\A${PACKAGE_NAME}\s+\((?:(\d+):)?([0-9A-Za-z.+:~\-]+?)(?:-([0-9A-Za-z.+~]+))?\)\s+}; ($epoch, $upstream, $debrev) = ($1, $2, $3); print $upstream; exit(0);' < debian/changelog.${RELEASE})
-echo "Building ${VERSION} for ${RELEASE}"
+for RELEASE in "${UBUNTU_RELEASES[@]}"; do (
+    VERSION=$(PACKAGE_NAME=$PACKAGE_NAME perl -MEnv -nle 'next unless m{\A${PACKAGE_NAME}\s+\((?:(\d+):)?([0-9A-Za-z.+:~\-]+?)(?:-([0-9A-Za-z.+~]+))?\)\s+}; ($epoch, $upstream, $debrev) = ($1, $2, $3); print $upstream; exit(0);' < debian/changelog.${RELEASE})
+    echo "Building ${VERSION} for ${RELEASE}"
 
-# Create working directory
-WORK_DIR="$(mktemp -d ../build-${RELEASE}-${VERSION}.XXXXXXXXXX)"
-echo "Working in: $WORK_DIR"
-cd "$WORK_DIR"
+    # Create working directory
+    WORK_DIR="$(mktemp -d ../build-${RELEASE}-${VERSION}.XXXXXXXXXX)"
+    echo "Working in: $WORK_DIR"
+    cd "$WORK_DIR"
 
-# Clone the upstream repository
-echo "Cloning upstream repository..."
-git clone "$UPSTREAM_REPO" "$PACKAGE_NAME-$VERSION"
-cd "$PACKAGE_NAME-$VERSION"
-#? git config --global --add safe.directory $(pwd)
-git switch ${BRANCH}
+    # Clone the upstream repository
+    echo "Cloning upstream repository..."
+    git clone "$UPSTREAM_REPO" "$PACKAGE_NAME-$VERSION"
+    cd "$PACKAGE_NAME-$VERSION"
+    #? git config --global --add safe.directory $(pwd)
+    git switch ${BRANCH}
 
-# Create upstream source tarball for source package
-DSRC_ORIGIN="${PACKAGE_NAME}_${VERSION}.orig.tar.gz"
-git archive --format=tar.gz --prefix="$PACKAGE_NAME-$VERSION/" --output="../${DSRC_ORIGIN}" ${BRANCH}
+    # Create upstream source tarball for source package
+    DSRC_ORIGIN="${PACKAGE_NAME}_${VERSION}.orig.tar.gz"
+    git archive --format=tar.gz --prefix="$PACKAGE_NAME-$VERSION/" --output="../${DSRC_ORIGIN}" ${BRANCH}
 
-echo "Using debian/changelog.${RELEASE} fo debian/changelog"
-ln -s changelog.${RELEASE} debian/changelog
+    echo "Using debian/changelog.${RELEASE} fo debian/changelog"
+    ln -s changelog.${RELEASE} debian/changelog
 
-_a=($(perl -anle 'next unless m{export-ignore}; next if m{\.gitattributes|\.gitignore|^debian}; print qq($F[0]);' < .gitattributes))
-echo "Moving files excluded from source tree to ../build-excluded/: ${_a[*]}"
-mkdir -p ../build-excluded
-mv --target-directory=../build-excluded ${_a[*]}
+    _a=($(perl -anle 'next unless m{export-ignore}; next if m{\.gitattributes|\.gitignore|^debian}; print qq($F[0]);' < .gitattributes))
+    echo "Moving files excluded from source tree to ../build-excluded/: ${_a[*]}"
+    mkdir -p ../build-excluded
+    mv --target-directory=../build-excluded ${_a[*]}
 
-## NB: Using debuild from devscripts (higher-level warpper for dpkg-buildpackage)
-## TODO: Set up signing
-## TODO: repackage as "+dfsg repackaged tarball" to exclude this build script and other non-essential files.
-#debuild -S -sa -k"$MAINTAINER_EMAIL" || echo "Note: Package built but not signed (add GPG key for signing)"
-
+    ## NB: Using debuild from devscripts (higher-level warpper for dpkg-buildpackage)
+    ## TODO: Set up signing
+    ## TODO: repackage as "+dfsg repackaged tarball" to exclude this build script and other non-essential files.
+    #debuild -S -sa -k"$MAINTAINER_EMAIL" || echo "Note: Package built but not signed (add GPG key for signing)"
 
 
-echo "Building source package for Ubuntu $RELEASE..."
-debuild -S -sa -k"$MAINTAINER_EMAIL" --no-sign
-echo "Moving results to release-specific directory $(pwd)/../release"
-mkdir -p "../release"
-mv ../*${VERSION}-[0-9]*~*~${RELEASE}*{.dsc,.tar.*,.changes} "../release" 2>/dev/null
 
-echo "Source packages of ${VERSION} for ${RELEASE}created in: $WORK_DIR/release/"
-#done
+    echo "Building source package for Ubuntu $RELEASE..."
+    debuild -S -sa -k"$MAINTAINER_EMAIL" --no-sign
+    echo "Moving results to release-specific directory $(pwd)/../release"
+    mkdir -p ../release
+    mv --target-directory=../release/ ../${PACKAGE_NAME}*${VERSION}*.orig.tar.gz ../${PACKAGE_NAME}*${VERSION}-[0-9]*~*~${RELEASE}*{.dsc,.tar.*,.changes} 2>/dev/null
+
+    echo -e "\n\n    Source packages of ${VERSION} for ${RELEASE}created in: $WORK_DIR/release/\n\n"
+); done
 
 ## Instructions for PPA upload
 #echo "Upload to PPA with: dput ppa:your-ppa-name/ppa-name path/to/changes/file"
@@ -78,12 +77,13 @@ echo "Source packages of ${VERSION} for ${RELEASE}created in: $WORK_DIR/release/
 ## Instructions to build locally. DANGER: NO ISOLATION.
 cat << EOF
 
-To build locally with debuild:
+To build any release locally with debuild:
 
-1.   cd $(pwd)/../release
+1.   cd $(pwd)/build-((release))-((version)).*/release
 2.   dpkg-source -x *.dsc
-3.   cd *-$VERSION
+3.   cd *-((version))
 4.   debuild -b -us -uc
+5.   cp *.deb /path/to/.../
 
 
 DANGER: NO ISOLATION. This may pullute the environment with local dependencies.
